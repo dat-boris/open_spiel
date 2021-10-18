@@ -27,7 +27,9 @@ from absl import app
 from absl import flags
 import numpy as np
 
+from open_spiel.python import rl_environment
 from open_spiel.python.algorithms import mcts
+from open_spiel.python.algorithms import dqn
 from open_spiel.python.algorithms.alpha_zero import evaluator as az_evaluator
 from open_spiel.python.algorithms.alpha_zero import model as az_model
 from open_spiel.python.bots import gtp
@@ -51,7 +53,11 @@ _KNOWN_PLAYERS = [
 
     # Run an alpha_zero checkpoint with MCTS. Uses the specified UCT/sims.
     # Requires the az_path flag.
-    "az"
+    "az",
+
+    # Run a DQN checkoint.
+    # Also require the az_path flag!
+    "dqn"
 ]
 
 flags.DEFINE_string("game", "tic_tac_toe", "Name of the game.")
@@ -104,6 +110,21 @@ def _init_bot(bot_type, game, player_id):
         child_selection_fn=mcts.SearchNode.puct_value,
         solve=FLAGS.solve,
         verbose=FLAGS.verbose)
+  if bot_type == "dqn":
+    env = rl_environment.Environment(game)
+    observation_tensor_size = env.observation_spec()["info_state"][0]
+    num_actions = env.action_spec()["num_actions"]
+    agent = dqn.DQN(
+        game,
+        #player_id=idx,
+        # Default from skat_dqn.py
+        state_representation_size=observation_tensor_size,
+        num_actions=num_actions,
+        hidden_layers_sizes=[64, 64],
+        replay_buffer_capacity=int(1e5),
+        batch_size=32)
+    agent.restore(FLAGS.az_path)
+    return agent
   if bot_type == "random":
     return uniform_random.UniformRandomBot(player_id, rng)
   if bot_type == "human":
