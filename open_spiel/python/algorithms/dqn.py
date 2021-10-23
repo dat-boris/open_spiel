@@ -296,7 +296,10 @@ class DQN(rl_agent.AbstractAgent):
         info_state=(
             prev_time_step.observations["info_state"][self.player_id][:]),
         action=prev_action,
-        reward=time_step.rewards[self.player_id],
+        reward=(
+          time_step.rewards[self.player_id]
+          if time_step.rewards is not None else 0
+        ),
         next_info_state=time_step.observations["info_state"][self.player_id][:],
         is_final_step=float(time_step.last()),
         legal_actions_mask=legal_actions_mask)
